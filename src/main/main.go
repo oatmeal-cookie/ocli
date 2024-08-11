@@ -1,25 +1,66 @@
 package main
 
 import (
-	"fmt"
+	"flag"
+	"os"
+	"strings"
 
 	oatmealcookies "github.com/oatmeal-cookie/ocli/src/oatmealCookie"
 )
 
+var format string
+
+func init() {
+	flag.StringVar(&format, "format", "md", "output format of recipe")
+}
+
+func firstFlag() int {
+	flagIndex := 1
+	for i := 1; i < len(os.Args); i++ {
+		flagIndex = i
+		if strings.HasPrefix(os.Args[i], "-") {
+			break
+		}
+	}
+	return flagIndex
+}
+
 func main() {
-	recipe, err := oatmealcookies.UrlToJsonFile(
-		"https://www.allrecipes.com/recipe/24202/shepherds-pie-vi/",
-		"/Users/andrewalgard/recipejson/sheperds-pie.json")
-	if err != nil {
-		panic(err)
-	}
-	_, err = oatmealcookies.UrlToMarkdownFile(
-		"https://www.allrecipes.com/recipe/24202/shepherds-pie-vi/",
-		"/Users/andrewalgard/recipemarkdown/sheperds-pie.md")
+	flagIndex := firstFlag()
+	flag.CommandLine.Parse(os.Args[flagIndex:])
 
-	if err != nil {
-		panic(err)
+	args := os.Args
+	if len(args) < 2 {
+		os.Stderr.WriteString("Missing args: URL and output filepath required")
+		return
 	}
-	fmt.Println(recipe)
+	if len(args) < 3 {
+		os.Stderr.WriteString("Missing arg: output filepath required")
+		return
+	}
+	url := args[1]
+	filepath := args[2]
+	parseUrl(format, url, filepath)
+}
+func parseUrl(format string, url string, filepath string) {
+	if format == "md" {
+		_, err := oatmealcookies.UrlToMarkdownFile(
+			url,
+			filepath)
+		if err != nil {
+			os.Stderr.WriteString(err.Error())
+			return
+		}
+		return
+	}
+	if format == "json" {
 
+		_, err := oatmealcookies.UrlToJsonFile(
+			url,
+			filepath)
+		if err != nil {
+			os.Stderr.WriteString(err.Error())
+			return
+		}
+	}
 }
