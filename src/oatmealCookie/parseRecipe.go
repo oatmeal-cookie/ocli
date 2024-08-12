@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"html"
-	"os"
+	"io"
 	"strings"
 
 	"github.com/gocolly/colly"
@@ -31,7 +31,7 @@ func ExtractLdJson(recipeUrl string) (FoundRecipe, error) {
 	return FoundRecipe{}, errors.New("no ld+json found")
 }
 
-func UrlToJsonFile(recipeUrl string, filepath string) (FoundRecipe, error) {
+func UrlToJsonFile(recipeUrl string, writer io.Writer) (FoundRecipe, error) {
 	recipe, err := ExtractLdJson(recipeUrl)
 	if err != nil {
 		return FoundRecipe{}, err
@@ -43,15 +43,16 @@ func UrlToJsonFile(recipeUrl string, filepath string) (FoundRecipe, error) {
 	if err != nil {
 		return FoundRecipe{}, err
 	}
-	err = writeDataToFile(toWrite, filepath)
+	err = writeDataToFile(toWrite, writer)
 	if err != nil {
 		return FoundRecipe{}, err
 	}
 	return recipe, nil
 }
 
-func writeDataToFile(data []byte, filepath string) error {
-	return os.WriteFile(filepath, data, 0644)
+func writeDataToFile(data []byte, writer io.Writer) error {
+	_, err := writer.Write(data)
+	return err
 }
 
 func getFilenameOfRecipe(recipe FoundRecipe, filepath string) string {
@@ -62,12 +63,11 @@ func getFilenameOfRecipe(recipe FoundRecipe, filepath string) string {
 	return sb.String()
 }
 
-func UrlToMarkdownFile(recipeUrl string, filepath string) (FoundRecipe, error) {
+func UrlToMarkdown(recipeUrl string, output io.Writer) (FoundRecipe, error) {
 	recipe, err := ExtractLdJson(recipeUrl)
 	if err != nil {
 		return FoundRecipe{}, err
 	}
-	filename := getFilenameOfRecipe(recipe, filepath)
-	err = generateMarkdown(recipe, filename)
+	err = generateMarkdown(recipe, output)
 	return recipe, err
 }

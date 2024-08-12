@@ -1,39 +1,35 @@
 package oatmealcookies
 
 import (
+	"bufio"
+	"bytes"
 	"testing"
 )
 
-type testArgs struct {
-	url      string
-	filepath string
-}
+func getTestArgs() []string {
 
-func getTestArgs() []testArgs {
-	ret := make([]testArgs, 0)
-
-	ret = append(
-		ret,
-		testArgs{
-			url:      "https://www.allrecipes.com/recipe/24202/shepherds-pie-vi/",
-			filepath: "/Users/andrewalgard/recipemarkdown/",
-		})
-	return ret
+	return []string{
+		"https://www.allrecipes.com/recipe/24202/shepherds-pie-vi/",
+	}
 }
 
 func TestCreateMarkdown(t *testing.T) {
 	toTest := getTestArgs()
 
-	for i := 0; i < len(toTest); i++ {
+	for i := range len(toTest) {
 		testCase := toTest[i]
-		_, err := UrlToMarkdownFile(
-			testCase.url,
-			testCase.filepath,
+		var b bytes.Buffer
+		writer := bufio.NewWriter(&b)
+		_, err := UrlToMarkdown(
+			testCase,
+			writer,
 		)
+		t.Log(b.String())
 
 		if err != nil {
 			t.Fatal(err.Error())
 			break
 		}
+
 	}
 }

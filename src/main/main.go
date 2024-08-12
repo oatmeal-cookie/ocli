@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"flag"
+	"io"
 	"os"
 	"strings"
 
@@ -9,9 +11,12 @@ import (
 )
 
 var format string
+var filepath string
 
 func init() {
+
 	flag.StringVar(&format, "format", "md", "output format of recipe")
+	flag.StringVar(&format, "f", "", "output format of recipe")
 }
 
 func firstFlag() int {
@@ -31,22 +36,27 @@ func main() {
 
 	args := os.Args
 	if len(args) < 2 {
-		os.Stderr.WriteString("Missing args: URL and output filepath required")
-		return
-	}
-	if len(args) < 3 {
-		os.Stderr.WriteString("Missing arg: output filepath required")
+		os.Stderr.WriteString("Missing arg: URL is required")
 		return
 	}
 	url := args[1]
-	filepath := args[2]
 	parseUrl(format, url, filepath)
 }
+
 func parseUrl(format string, url string, filepath string) {
+	writer, err := createOutput(filepath)
+	if v, ok := writer.(*os.File); ok {
+		defer v.Close()
+	}
+
+	if err != nil {
+		os.Stderr.WriteString(err.Error())
+		return
+	}
 	if format == "md" {
-		_, err := oatmealcookies.UrlToMarkdownFile(
+		_, err := oatmealcookies.UrlToMarkdown(
 			url,
-			filepath)
+			writer)
 		if err != nil {
 			os.Stderr.WriteString(err.Error())
 			return
@@ -54,13 +64,46 @@ func parseUrl(format string, url string, filepath string) {
 		return
 	}
 	if format == "json" {
-
 		_, err := oatmealcookies.UrlToJsonFile(
 			url,
-			filepath)
+			writer)
 		if err != nil {
 			os.Stderr.WriteString(err.Error())
 			return
 		}
 	}
+}
+
+func createOutput(filepath string) (io.Writer, error) {
+	if filepath == "" {
+		return os.Stdout, nil
+	} else {
+		valid := IsValid(filepath)
+		if valid {
+			file, err := os.Create(filepath)
+			if err != nil {
+				return file, err
+			}
+			return file, nil
+		} else {
+			return nil, errors.New("invalid filepath")
+		}
+	}
+
+}
+
+func IsValid(fp string) bool {
+	// Check if file already exists
+	if _, err := os.Stat(fp); err == nil {
+		return true
+	}
+
+	// Attempt to create it
+	var d []byte
+	if err := os.WriteFile(fp, d, 0644); err == nil {
+		os.Remove(fp) // And delete it
+		return true
+	}
+
+	return false
 }

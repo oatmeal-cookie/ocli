@@ -1,24 +1,18 @@
 package oatmealcookies
 
 import (
-	"os"
+	"io"
 	"strings"
 
 	md "github.com/nao1215/markdown"
 )
 
-func generateMarkdown(data FoundRecipe, filepath string) error {
+func generateMarkdown(data FoundRecipe, writer io.Writer) error {
 	ingredients := *data.RecipeIngredient
 	instructions := *data.RecipeInstructions
 	servings := *data.RecipeYeild
 
-	f, err := os.Create(filepath)
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-
-	builder := md.NewMarkdown(f).
+	builder := md.NewMarkdown(writer).
 		H1(*data.Name)
 	if len(servings) > 0 {
 		builder.PlainText("Serves " + servings[0])
